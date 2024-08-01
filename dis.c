@@ -41,7 +41,7 @@ static void reg_to_or_from_mem(int_fast8_t fbyte, Stream stream) {
   int_fast16_t offset = 0;
   if (mod == 0b10 || mod == 0b00 && rm == 0b110) {
     offset  = stream.getbyte(stream.stream);
-    offset &= stream.getbyte(stream.stream) << 8; 
+    offset |= stream.getbyte(stream.stream) << 8; 
   } else if (mod == 0b01) {
     offset = stream.getbyte(stream.stream);
   }
@@ -52,9 +52,21 @@ static void reg_to_or_from_mem(int_fast8_t fbyte, Stream stream) {
   printf("\n");
 }
 
+static void imm_to_reg(int_fast8_t fbyte, Stream stream) {
+  const int_fast8_t
+    reg = fbyte & 0x01
+  , w   = (fbyte & 0x08) >> 3;
+  int_fast16_t inmediate = stream.getbyte(stream.stream);
+  if (w == 1) {
+    inmediate |= stream.getbyte(stream.stream) << 8;
+  }
+  printf("mov %s, 0x%.4x\n", direction_table[reg + 0b11][w], (short) inmediate);
+}
+
 static void (*decode_table[256])(int_fast8_t, Stream) = {
   // ...
-  /* mov: 11000__ */ [135 ... 138] = &reg_to_or_from_mem,
+  [0b10001000 ... 0b10001011] = &reg_to_or_from_mem,
+  [0b10110000 ... 0b10111111] = &imm_to_reg
   // ...
 };
 
